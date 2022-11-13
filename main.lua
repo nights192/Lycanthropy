@@ -16,42 +16,57 @@ Lycanthropy.data = DataManager.loadData("Lycanthropy", Lycanthropy.defaultData)
 -- END DATA SETUP SECTION --
 
 -- Time between werewolf transformation scans.
-Lycanthropy.checkInterval = time.seconds(5)
+Lycanthropy.checkInterval = time.seconds(60)
 
+Lycanthropy.ongoing = false
 Lycanthropy.activePids = {}
 
 Lycanthropy.transformCharacters = function()
+    Lycanthropy.ongoing = true
+
     for _, pid in ipairs(Lycanthropy.activePids) do
         local ply = Players[pid]
+        local isPlayerWerewolf = tes3mp.IsWerewolf(pid)
+        local lycanthrope = Lycanthropy.data.lycanthropes[ply.name]
         
-        if not tes3mp.IsWerewolf(pid) then
-            -- hash lookups are comparatively more expensive than this; hence, we lead with a check
-            -- to ensure the operation remains necessary.
-            local lycanthrope = Lycanthropy.data.lycanthropes[ply.name]
-
+        if not isPlayerWerewolf then
             if lycanthrope ~= nil then
-                tes3mp.LogAppend(enumerations.log.INFO, "They are, transforming!")
                 ply:SetWerewolfState(true)
                 ply:LoadShapeshift()
             end
+        elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
+            Lycanthropy.data.lycanthropes[ply.name] = {}
+            DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
         end
     end
 end
 
 Lycanthropy.revertCharacters = function()
+    local updatedCharacterFlags = false
+    Lycanthropy.ongoing = false
+
     for _, pid in ipairs(Lycanthropy.activePids) do
         local ply = Players[pid]
+        local lycanthrope = Lycanthropy.data.lycanthropes[ply.name]
 
         if tes3mp.IsWerewolf(pid) then
-            -- hash lookups are comparatively more expensive than this; hence, we lead with a check
-            -- to ensure the operation remains necessary.
-            local lycanthrope = Lycanthropy.data.lycanthropes[ply.name]
-            
             if lycanthrope ~= nil then
                 ply:SetWerewolfState(false)
                 ply:LoadShapeshift()
             end
         end
+
+        -- Updating werewolf flags.
+        if lycanthrope.deathTimeout then
+            updatedCharacterFlags = true
+            lycanthrope.deathTimeout = false
+        end
+
+        -- TODO: Bloodlust logic!
+    end
+
+    if updatedCharacterFlags then
+        DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
     end
 end
 
@@ -64,7 +79,6 @@ function LycanthropeCheckTransformationTimes()
         Lycanthropy.transformCharacters()
     end
 
-    tes3mp.LogAppend(enumerations.log.INFO, currentTime)
     tes3mp.RestartTimer(Lycanthropy.CheckTransformationTimer, Lycanthropy.checkInterval)
 end
 
@@ -73,17 +87,19 @@ tes3mp.StartTimer(Lycanthropy.CheckTransformationTimer)
 
 Lycanthropy.AddLycan = function(pid, cmd)
     if Players[pid]:IsAdmin() then
-        tes3mp.LogAppend(enumerations.log.INFO, cmd[2])
         local targetPlayer = Players[tonumber(cmd[2])]
 
-        Lycanthropy.data.lycanthropes[targetPlayer.name] = {}
+        Lycanthropy.data.lycanthropes[targetPlayer.name] = {
+            deathTimeout = false,
+            bloodlust = false
+        }
+        
         DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
     end
 end
 
 Lycanthropy.RemoveLycan = function(pid, cmd)
     if Players[pid]:IsAdmin() then
-        tes3mp.LogAppend(enumerations.log.INFO, cmd[2])
         local targetPlayer = Players[tonumber(cmd[2])]
 
         Lycanthropy.data.lycanthropes[targetPlayer.name] = nil
@@ -105,5 +121,17 @@ customEventHooks.registerHandler("OnPlayerDisconnect", function(status, pid)
 
             break
         end
+    end
+end)
+
+-- Track whether or not a player has died as a werewolf, ensuring they do not shapeshift immediately in the default cell.
+customEventHooks.registerHandler("OnPlayerDeath", function(pid)
+    if Lycanthropy.ongoing == true then
+        local lycan =  Lycanthropy.data.lycanthropes[Players[pid].name]
+
+        lycan.deathTimeout = true
+        lycan.bloodlust = false
+
+        DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
     end
 end)
