@@ -87,23 +87,31 @@ tes3mp.StartTimer(Lycanthropy.CheckTransformationTimer)
 
 Lycanthropy.AddLycan = function(pid, cmd)
     if Players[pid]:IsAdmin() then
-        local targetPlayer = Players[tonumber(cmd[2])]
+        if cmd[2] ~= nil then
+            local targetPlayer = Players[tonumber(cmd[2])]
 
-        Lycanthropy.data.lycanthropes[targetPlayer.name] = {
-            deathTimeout = false,
-            bloodlust = false
-        }
-        
-        DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+            Lycanthropy.data.lycanthropes[targetPlayer.name] = {
+                deathTimeout = false,
+                bloodlust = false
+            }
+            
+            DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+        else
+            tes3mp.SendMessage(pid, "/addlycan (pid)\n", false)
+        end
     end
 end
 
 Lycanthropy.RemoveLycan = function(pid, cmd)
     if Players[pid]:IsAdmin() then
-        local targetPlayer = Players[tonumber(cmd[2])]
+        if cmd[2] ~= nil then
+            local targetPlayer = Players[tonumber(cmd[2])]
 
-        Lycanthropy.data.lycanthropes[targetPlayer.name] = nil
-        DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+            Lycanthropy.data.lycanthropes[targetPlayer.name] = nil
+            DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+        else
+            tes3mp.SendMessage(pid, "/removelycan (pid)\n", false)
+        end
     end
 end
 
