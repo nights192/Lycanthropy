@@ -38,7 +38,7 @@ Lycanthropy.transformCharacters = function()
         local lycanthrope = Lycanthropy.data.lycanthropes[ply.name]
         
         if not isPlayerWerewolf then
-            if lycanthrope ~= nil then
+            if lycanthrope ~= nil and not lycanthrope.deathTimeout then
                 ply:SetWerewolfState(true)
                 ply:LoadShapeshift()
             end
