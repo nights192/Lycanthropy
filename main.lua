@@ -21,7 +21,15 @@ Lycanthropy.checkInterval = time.seconds(60)
 Lycanthropy.ongoing = false
 Lycanthropy.activePids = {}
 
+Lycanthropy.genDefaultLycan = function()
+    return {
+        deathTimeout = false,
+        bloodlust = false
+    }
+end
+
 Lycanthropy.transformCharacters = function()
+    local updatedCharacterFlags = false
     Lycanthropy.ongoing = true
 
     for _, pid in ipairs(Lycanthropy.activePids) do
@@ -35,9 +43,13 @@ Lycanthropy.transformCharacters = function()
                 ply:LoadShapeshift()
             end
         elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
-            Lycanthropy.data.lycanthropes[ply.name] = {}
-            DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+            updatedCharacterFlags = true
+            Lycanthropy.data.lycanthropes[ply.name] = Lycanthropy.genDefaultLycan()
         end
+    end
+
+    if updatedCharacterFlags then
+        DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
     end
 end
 
@@ -90,11 +102,7 @@ Lycanthropy.AddLycan = function(pid, cmd)
         if cmd[2] ~= nil then
             local targetPlayer = Players[tonumber(cmd[2])]
 
-            Lycanthropy.data.lycanthropes[targetPlayer.name] = {
-                deathTimeout = false,
-                bloodlust = false
-            }
-            
+            Lycanthropy.data.lycanthropes[targetPlayer.name] = Lycanthropy.genDefaultLycan()
             DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
         else
             tes3mp.SendMessage(pid, "/addlycan (pid)\n", false)
