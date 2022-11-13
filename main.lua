@@ -69,7 +69,7 @@ Lycanthropy.revertCharacters = function()
         end
 
         -- Updating werewolf flags.
-        if lycanthrope.deathTimeout then
+        if lycanthrope ~= nil and lycanthrope.deathTimeout then
             updatedCharacterFlags = true
             lycanthrope.deathTimeout = false
         end
@@ -142,12 +142,16 @@ end)
 
 -- Track whether or not a player has died as a werewolf, ensuring they do not shapeshift immediately in the default cell.
 customEventHooks.registerHandler("OnPlayerDeath", function(pid)
-    local lycan =  Lycanthropy.data.lycanthropes[Players[pid].name]
+    local ply = Players[pid]
 
-    if Lycanthropy.ongoing == true and lycan ~= nil then
-        lycan.deathTimeout = true
-        lycan.bloodlust = false
+    if ply ~= nil then
+        local lycan = Lycanthropy.data.lycanthropes[ply.name]
 
-        DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+        if Lycanthropy.ongoing == true and lycan ~= nil then
+            lycan.deathTimeout = true
+            lycan.bloodlust = false
+
+            DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+        end
     end
 end)
