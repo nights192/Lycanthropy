@@ -138,7 +138,7 @@ customEventHooks.registerHandler("OnPlayerDisconnect", function(status, pid)
             break
         end
     end
-end)
+end)    
 
 -- Track whether or not a player has died as a werewolf, ensuring they do not shapeshift immediately in the default cell.
 customEventHooks.registerHandler("OnPlayerDeath", function(pid)
