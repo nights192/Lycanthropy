@@ -142,9 +142,7 @@ end)
 
 -- Track whether or not a player has died as a werewolf, ensuring they do not shapeshift immediately in the default cell.
 customEventHooks.registerHandler("OnPlayerDeath", function(event, pid)
-    local ply = Players[pid]
-
-    local lycan = Lycanthropy.data.lycanthropes[ply.name]
+    local lycan = Lycanthropy.data.lycanthropes[Players[pid].name]
 
     if Lycanthropy.ongoing == true and lycan ~= nil then
         lycan.deathTimeout = true
