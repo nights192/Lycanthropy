@@ -60,9 +60,11 @@ Lycanthropy.transformCharacters = function()
                     lycanthrope.deathTimeout = false
                 end
             end
-        elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
-            updatedCharacterFlags = true
-            Lycanthropy.data.lycanthropes[ply.name] = Lycanthropy.genDefaultLycan()
+            elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
+                updatedCharacterFlags = true
+                Lycanthropy.data.lycanthropes[ply.name] = Lycanthropy.genDefaultLycan()
+                Lycanthropy.data.lycanthropes[ply.name].bloodlust = true
+            end
         end
     end
 
