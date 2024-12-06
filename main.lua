@@ -1,5 +1,4 @@
--- TODO: Implement alternative werewolf scales.
--- TODO: Implement bloodlust mechanic.
+-- TODO: HIRCINE'S RING SUPPORT.
 
 -- DATA SETUP SECTION --
 -- These must be global, as they are accessed asynchronously.
@@ -141,6 +140,20 @@ Lycanthropy.RemoveLycan = function(pid, cmd)
     end
 end
 
+Lycanthropy.CureAll = function()
+    Lycanthropy.data.lycanthropes = {}
+
+    for _, pid in ipairs(Lycanthropy.activePids) do
+        local ply = Players[pid]
+
+        ply:SetWerewolfState(false)
+        ply:LoadShapeshift()
+        Lycanthropy.RemoveBL(pid)
+    end
+
+    DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+end
+
 Lycanthropy.AddBL = function(pid)
     if tableHelper.containsValue(Players[pid].data.spellbook, spellBloodLust) == false then
         table.insert(Players[pid].data.spellbook, spellBloodLust)
@@ -215,6 +228,21 @@ customEventHooks.registerHandler("OnPlayerDeath", function(event, pid)
         end
 
         DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+    end
+end)
+
+-- Accounts for Bloodmoon question completion.
+customEventHooks.registerHandler("OnPlayerJournal", function(eventStatus, pid, playerPacket)
+    if config.shareJournal == true then
+        for _, journalItem in ipairs(journal) do
+            if journalItem.quest == "BM_WolfGiver" and journalItem.index == 120 then
+                Lycanthropy.CureAll()
+            end
+
+            if journalItem.quest == "BM_Lycanthropycure" and journalItem.index == 20 then
+                Lycanthropy.CureAll()
+            end
+        end
     end
 end)
 
