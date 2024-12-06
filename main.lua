@@ -140,6 +140,12 @@ Lycanthropy.RemoveLycan = function(pid, cmd)
     end
 end
 
+Lycanthropy.PurgeLycans = function(pid, cmd)
+    if Players[pid]:IsAdmin() then
+        Lycanthropy.CureAll()
+    end
+end
+
 Lycanthropy.CureAll = function()
     Lycanthropy.data.lycanthropes = {}
 
