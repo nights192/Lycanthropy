@@ -15,8 +15,13 @@ Lycanthropy.defaultData = {
 Lycanthropy.data = DataManager.loadData("Lycanthropy", Lycanthropy.defaultData)
 -- END DATA SETUP SECTION --
 
+-- CONSTANTS --
+local RefIdHircine = "BM_ring_hircine"
+local spellBloodLust = "werewolf hunger"
+
 -- Time between werewolf transformation scans.
 Lycanthropy.checkInterval = time.seconds(60)
+-- END CONSTANTS --
 
 Lycanthropy.ongoing = false
 Lycanthropy.activePids = {}
@@ -28,6 +33,10 @@ Lycanthropy.genDefaultLycan = function()
     }
 end
 
+Lycanthropy.LycanthropeData = function(pid)
+    return Lycanthropy.data.lycanthropes[Players[pid].name]
+end
+
 Lycanthropy.transformCharacters = function()
     local updatedCharacterFlags = false
     Lycanthropy.ongoing = true
@@ -35,12 +44,22 @@ Lycanthropy.transformCharacters = function()
     for _, pid in ipairs(Lycanthropy.activePids) do
         local ply = Players[pid]
         local isPlayerWerewolf = tes3mp.IsWerewolf(pid)
-        local lycanthrope = Lycanthropy.data.lycanthropes[ply.name]
+        local lycanthrope = Lycanthropy.LycanthropeData(pid)
         
         if not isPlayerWerewolf then
-            if lycanthrope ~= nil and not lycanthrope.deathTimeout then
-                ply:SetWerewolfState(true)
-                ply:LoadShapeshift()
+            if lycanthrope ~= nil then
+                if not lycanthrope.deathTimeout then
+                    ply:SetWerewolfState(true)
+                    ply:LoadShapeshift()
+
+                    -- TODO: Figure out a way to detect a Hircine's ring transformation. Apply the need for bloodlust.
+                    updatedCharacterFlags = true
+                    lycanthrope.bloodlust = true
+                else
+                    updatedCharacterFlags = true
+                    lycanthrope.bloodlust = false
+                    lycanthrope.deathTimeout = false
+                end
             end
         elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
             updatedCharacterFlags = true
@@ -59,7 +78,7 @@ Lycanthropy.revertCharacters = function()
 
     for _, pid in ipairs(Lycanthropy.activePids) do
         local ply = Players[pid]
-        local lycanthrope = Lycanthropy.data.lycanthropes[ply.name]
+        local lycanthrope = Lycanthropy.LycanthropeData(pid)
 
         if tes3mp.IsWerewolf(pid) then
             if lycanthrope ~= nil then
@@ -68,13 +87,12 @@ Lycanthropy.revertCharacters = function()
             end
         end
 
-        -- Updating werewolf flags.
-        if lycanthrope ~= nil and lycanthrope.deathTimeout then
-            updatedCharacterFlags = true
-            lycanthrope.deathTimeout = false
+        if lycanthrope ~= nil then
+            -- Applying bloodlust.
+            if lycanthrope.bloodlust and not lycanthrope.deathTimeout then
+                Lycanthropy.AddBL(pid)
+            end
         end
-
-        -- TODO: Bloodlust logic!
     end
 
     if updatedCharacterFlags then
@@ -123,6 +141,31 @@ Lycanthropy.RemoveLycan = function(pid, cmd)
     end
 end
 
+Lycanthropy.AddBL = function(pid)
+    if tableHelper.containsValue(Players[pid].data.spellbook, spellBloodLust) == false then
+        table.insert(Players[pid].data.spellbook, spellBloodLust)
+
+        tes3mp.ClearSpellbookChanges(pid)
+        tes3mp.SetSpellbookChangesAction(pid, enumerations.spellbook.ADD)
+        tes3mp.AddSpell(pid, spellBloodLust)
+        tes3mp.SendSpellbookChanges(pid)
+
+        tes3mp.MessageBox(pid, -1, "The wolf-blood stews in its languor; oh, how you hunger...")
+    end
+end
+
+Lycanthropy.RemoveBL = function(pid)
+    if tableHelper.containsValue(Players[pid].data.spellbook, spellBloodLust) == true then
+        tableHelper.removeValue(Players[pid].data.spellbook, spellBloodLust)
+        tableHelper.cleanNils(Players[pid].data.spellbook)
+
+        tes3mp.ClearSpellbookChanges(pid)
+        tes3mp.SetSpellbookChangesAction(pid, enumerations.spellbook.REMOVE)
+        tes3mp.AddSpell(pid, spellBloodLust)
+        tes3mp.SendSpellbookChanges(pid)
+    end
+end
+
 customCommandHooks.registerCommand("addlycan", Lycanthropy.AddLycan)
 customCommandHooks.registerCommand("removelycan", Lycanthropy.RemoveLycan)
 
@@ -138,16 +181,41 @@ customEventHooks.registerHandler("OnPlayerDisconnect", function(status, pid)
             break
         end
     end
-end)    
+end)
+
+-- Simplified variant of bloodlust--player need merely be within the vicinity.
+customEventHooks.registerHandler("OnActorDeath", function(eventStatus, pid, cellDescription, actors)
+    for _, pid in ipairs(Lycanthropy.activePids) do
+        local lycanthrope = Lycanthropy.LycanthropeData(pid)
+
+        if lycanthrope ~= nil then
+            for _, actor in pairs(actors) do
+                if actor.killer.pid == pid then
+                    lycanthrope.bloodlust = false
+                    Lycanthropy.RemoveBL(pid)
+                    DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
+
+                    return
+                end
+            end
+        end
+    end
+end)
 
 -- Track whether or not a player has died as a werewolf, ensuring they do not shapeshift immediately in the default cell.
 customEventHooks.registerHandler("OnPlayerDeath", function(event, pid)
     local lycan = Lycanthropy.data.lycanthropes[Players[pid].name]
+    Lycanthropy.RemoveBL(pid)
 
-    if Lycanthropy.ongoing == true and lycan ~= nil then
-        lycan.deathTimeout = true
+    if lycan ~= nil then
         lycan.bloodlust = false
+
+        if Lycanthropy.ongoing == true then
+            lycan.deathTimeout = true
+        end
 
         DataManager.saveData(Lycanthropy.scriptName, Lycanthropy.data)
     end
 end)
+
+return Lycanthropy
