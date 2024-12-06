@@ -60,11 +60,9 @@ Lycanthropy.transformCharacters = function()
                     lycanthrope.deathTimeout = false
                 end
             end
-            elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
-                updatedCharacterFlags = true
-                Lycanthropy.data.lycanthropes[ply.name] = Lycanthropy.genDefaultLycan()
-                Lycanthropy.data.lycanthropes[ply.name].bloodlust = true
-            end
+        elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
+            updatedCharacterFlags = true
+            Lycanthropy.data.lycanthropes[ply.name] = Lycanthropy.genDefaultLycan()
         end
     end
 
@@ -189,6 +187,7 @@ end
 
 customCommandHooks.registerCommand("addlycan", Lycanthropy.AddLycan)
 customCommandHooks.registerCommand("removelycan", Lycanthropy.RemoveLycan)
+customCommandHooks.registerCommand("purgelycans", Lycanthropy.PurgeLycans)
 
 customEventHooks.registerHandler("OnPlayerConnect", function(status, pid)
     table.insert(Lycanthropy.activePids, pid)
