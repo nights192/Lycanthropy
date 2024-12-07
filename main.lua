@@ -8,6 +8,7 @@ Lycanthropy.scriptName = "Lycanthropy"
 -- This DataManager instance tracks a list of the currently active werewolves in the game,
 -- along with any miscellaneous per-character features.
 Lycanthropy.defaultData = {
+    canBeInfected = true
     lycanthropes = {}
 }
 
@@ -60,7 +61,7 @@ Lycanthropy.transformCharacters = function()
                     lycanthrope.deathTimeout = false
                 end
             end
-        elseif lycanthrope == nil then -- Should we know the player is infected but not present in the database...
+        elseif lycanthrope == nil and Lycanthropy.data.canBeInfected then -- Should we know the player is infected but not present in the database...
             updatedCharacterFlags = true
             Lycanthropy.data.lycanthropes[ply.name] = Lycanthropy.genDefaultLycan()
         end
@@ -243,10 +244,12 @@ customEventHooks.registerHandler("OnPlayerJournal", function(eventStatus, pid, p
     if config.shareJournal == true then
         for _, journalItem in ipairs(journal) do
             if journalItem.quest == "BM_WolfGiver" and journalItem.index == 120 then
+                Lycanthropy.data.canBeInfected = false
                 Lycanthropy.CureAll()
             end
 
             if journalItem.quest == "BM_Lycanthropycure" and journalItem.index == 20 then
+                Lycanthropy.data.canBeInfected = false
                 Lycanthropy.CureAll()
             end
         end
