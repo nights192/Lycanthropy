@@ -242,7 +242,7 @@ end)
 -- Accounts for Bloodmoon question completion.
 customEventHooks.registerHandler("OnPlayerJournal", function(eventStatus, pid, playerPacket)
     if config.shareJournal == true then
-        for _, journalItem in ipairs(journal) do
+        for _, journalItem in pairs(playerPacket.journal) do
             if journalItem.quest == "BM_WolfGiver" and journalItem.index == 120 then
                 Lycanthropy.data.canBeInfected = false
                 Lycanthropy.CureAll()
