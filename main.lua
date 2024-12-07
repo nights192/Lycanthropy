@@ -8,7 +8,7 @@ Lycanthropy.scriptName = "Lycanthropy"
 -- This DataManager instance tracks a list of the currently active werewolves in the game,
 -- along with any miscellaneous per-character features.
 Lycanthropy.defaultData = {
-    canBeInfected = true
+    canBeInfected = true,
     lycanthropes = {}
 }
 
